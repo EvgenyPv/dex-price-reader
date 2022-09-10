@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
 	"math"
 	"math/big"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"text/tabwriter"
@@ -60,8 +62,7 @@ type blocksStruct struct {
 }
 
 func initParams() (*ethclient.Client, dexStruct, tokenStruct) {
-	//err := godotenv.Load()
-	err := godotenv.Load(os.Getenv("GOPATH") + "\\projects\\dex-price-reader\\.env") //!!!For debug purposes
+	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -246,7 +247,6 @@ func getBlocksTime(client *ethclient.Client, dex0Trades map[uint64][]tradeStruct
 			wg.Add(1)
 			go func(blockNum uint64, blocksTime *blocksStruct, wg *sync.WaitGroup) {
 				defer wg.Done()
-				//return error???
 				block, err := client.BlockByNumber(context.Background(), big.NewInt(int64(blockNum)))
 				blocksTime.mu.Lock()
 				if err != nil {
@@ -309,25 +309,27 @@ func logSynchronousSwaps(dex0Trades map[uint64][]tradeStruct, dex0Name string,
 
 func main() {
 
+	fmt.Println("Initializing DEX and tokens data")
 	client, dexes, tokens := initParams()
 
-	/*reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter analysis depth in hours: ")
 	input, _ := reader.ReadString('\n')
 	inputNum := strings.ReplaceAll(input, "\r\n", "")
 	duration, err := strconv.ParseInt(inputNum, 10, 64)
 	if err != nil || duration <= 0 {
 		log.Fatal("Input must be postive integer")
-	}*/
-	duration := int64(1)                                          //!!!For debug purposes
+	}
 	targetTimestamp := uint64(time.Now().Unix() - duration*60*60) //user has input duration in hours
 
 	//we will analyse blocks from startBlock (defined based on the input from user) to the latest
+	fmt.Println("Finding block number by timestamp")
 	startBlock, err := getBlockByTimestamp(client, targetTimestamp)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	fmt.Println("Reading swap logs")
 	dex0Trades, err := getLogs(client, dexes.dex0PairAddr, tokens, startBlock)
 	if err != nil {
 		log.Fatal(err)
