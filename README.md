@@ -1,4 +1,4 @@
-# DEX-price-reader
+# Crypto DEX-price-reader
 Sample project for DEX prices reading on Go.
 
 The tool shows trades on different decentralized exchanges within one block.
